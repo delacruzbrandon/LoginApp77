@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +39,7 @@ import org.koin.androidx.compose.koinViewModel
 fun LoginContent(
     paddingValues: PaddingValues,
     viewModel: LoginViewModel = koinViewModel(),
-    navigateToWelcome: () -> Unit,
+    navigateToWelcome: (String?) -> Unit,
     navigateToRegister: () -> Unit,
     snackbarHostState: SnackbarHostState // TODO Use for errors
 ) {
@@ -46,14 +49,23 @@ fun LoginContent(
     val goRegisterState by viewModel.goRegister.collectAsState()
     val usernameState by viewModel.username.collectAsState()
     val passwordState by viewModel.password.collectAsState()
+    val usernameListState by viewModel.usernameListState.collectAsState()
 
     var isUsernameValid by remember { mutableStateOf(true) }
     var isPasswordValid by remember { mutableStateOf(true) }
 
+    LaunchedEffect(Unit) {
+        viewModel.getUsers()
+    }
+
     LaunchedEffect(key1 = userLoginState) {
         when (userLoginState) {
             is RequestState.Success -> {
-                navigateToWelcome()
+                snackbarHostState.showSnackbar(
+                    message = "Login Success!"
+                )
+                val tokenState = userLoginState as RequestState.Success
+                navigateToWelcome(tokenState.data)
             }
             is RequestState.Loading -> {
                 snackbarHostState.showSnackbar(
@@ -90,7 +102,6 @@ fun LoginContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         UsernameTextField77(
             value = usernameState,
             isError = !isUsernameValid,
@@ -119,6 +130,38 @@ fun LoginContent(
 
         ClickableText(text = AnnotatedString("Don't have an account?")) {
             viewModel.goRegister()
+        }
+
+        Spacer(modifier = modifier.height(16.dp))
+
+        when (usernameListState) {
+            is RequestState.Success -> {
+                val usernameList = (usernameListState as RequestState.Success).data
+                val usernames: List<String> = usernameList.orEmpty().reversed()
+
+                LazyColumn(
+                    modifier = modifier
+                        .height(150.dp)
+                        .fillMaxWidth()
+                ) {
+                    items(usernames.size) {
+                        Text(
+                            text = "Hi, ${usernames[it]}",
+                            modifier = modifier.padding(16.dp)
+                        )
+
+                    }
+                }
+            }
+            is RequestState.Loading -> {
+                CircularProgressIndicator()
+            }
+            is RequestState.Error -> {
+                Text(text = "Loading Error API Too slow")
+            }
+            RequestState.Idle -> {
+                Text(text = "idle...")
+            }
         }
     }
 }

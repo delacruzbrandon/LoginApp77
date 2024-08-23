@@ -52,6 +52,9 @@ fun RegisterContent(
     LaunchedEffect(key1 = userRegisterState) {
         when (userRegisterState) {
             is RequestState.Success -> {
+                snackbarHostState.showSnackbar(
+                    message = "User Added. Success!"
+                )
                 navigateToLogin()
             }
             is RequestState.Loading -> {

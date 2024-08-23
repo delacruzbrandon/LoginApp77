@@ -1,12 +1,16 @@
 package com.clutchit.loginapp77.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.clutchit.loginapp77.data.models.User
+import com.clutchit.loginapp77.data.repository.register.RegisterRepository
 import com.clutchit.loginapp77.util.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-class RegisterViewModel: ViewModel() {
+class RegisterViewModel(
+    private val registerRepository: RegisterRepository
+): ViewModel() {
     private val _userRegisterState = MutableStateFlow<RequestState<User>>(RequestState.Idle)
     val userRegisterState: StateFlow<RequestState<User>> = _userRegisterState
 
@@ -35,7 +39,7 @@ class RegisterViewModel: ViewModel() {
         if (user.username.isEmpty() || user.password.isEmpty()) {
             registerError()
         } else {
-            registerUser(user)
+            addUser(user)
         }
     }
 
@@ -47,7 +51,20 @@ class RegisterViewModel: ViewModel() {
         _userRegisterState.value = RequestState.Error(Throwable("Registration Error!"))
     }
 
-    private suspend fun registerUser(user: User) {
-        _userRegisterState.value = RequestState.Success(user)
+    private suspend fun addUser(user: User) {
+        val response = registerRepository.addUser(user)
+
+        try {
+            if (response.isSuccessful) {
+                _userRegisterState.value = RequestState.Success(user)
+            } else {
+                _userRegisterState.value =
+                    RequestState.Error(
+                        Throwable(response.errorBody().toString())
+                    )
+            }
+        } catch (e: Error) {
+            _userRegisterState.value = RequestState.Error(Throwable(e))
+        }
     }
 }

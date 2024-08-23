@@ -1,5 +1,6 @@
 package com.clutchit.loginapp77.ui.screens.auth.login
 
+import android.util.Log
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -29,7 +30,7 @@ fun LoginScreen(
                 paddingValues = innerPadding,
                 navigateToWelcome = {
                     navController.popBackStack()
-                    navController.navigate(route = Screen.Welcome.route)
+                    navController.navigate(route = Screen.Welcome.passUsername(it))
                 },
                 navigateToRegister = {
                     navController.navigate(route = Screen.Register.route)

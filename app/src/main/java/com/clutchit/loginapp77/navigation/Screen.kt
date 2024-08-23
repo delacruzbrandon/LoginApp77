@@ -6,7 +6,13 @@ const val HOME_GRAPH_ROUTE = "home"
 const val AUTH_GRAPH_ROUTE = "auth"
 
 sealed class Screen(val route: String) {
-    object Welcome : Screen(route = "welcome_screen")
+    object Welcome : Screen(route = "welcome_screen?token={token}"){
+        fun passUsername(
+            token: String? = ""
+        ): String {
+            return "welcome_screen?token=$token"
+        }
+    }
     object Login: Screen(route = "login_screen")
     object Register: Screen(route = "register_screen")
 }

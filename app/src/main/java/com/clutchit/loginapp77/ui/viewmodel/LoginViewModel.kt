@@ -1,14 +1,24 @@
 package com.clutchit.loginapp77.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.clutchit.loginapp77.data.models.User
+import com.clutchit.loginapp77.data.repository.login.LoginRepository
 import com.clutchit.loginapp77.util.RequestState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
-class LoginViewModel: ViewModel() {
-    private val _userLoginState = MutableStateFlow<RequestState<User>>(RequestState.Idle)
-    val userLoginState: StateFlow<RequestState<User>> = _userLoginState
+class LoginViewModel(
+    private val loginRepository: LoginRepository
+) : ViewModel() {
+
+    private val _userLoginState = MutableStateFlow<RequestState<String?>>(RequestState.Idle)
+    val userLoginState: StateFlow<RequestState<String?>> = _userLoginState
+
+    private val _usernameListState = MutableStateFlow<RequestState<List<String>?>>(RequestState.Idle)
+    val usernameListState: StateFlow<RequestState<List<String>?>> = _usernameListState
 
     private val _goRegister = MutableStateFlow(false)
     val goRegister: StateFlow<Boolean> = _goRegister
@@ -35,7 +45,7 @@ class LoginViewModel: ViewModel() {
         if (user.username.isEmpty() || user.password.isEmpty()) {
             loginError()
         } else {
-            loginUser(user)
+            authenticateUser(user)
         }
     }
 
@@ -47,7 +57,38 @@ class LoginViewModel: ViewModel() {
         _userLoginState.value = RequestState.Error(Throwable("Login Error!"))
     }
 
-    private suspend fun loginUser(user: User) {
-        _userLoginState.value = RequestState.Success(user)
+    suspend fun getUsers() {
+        viewModelScope.launch {
+            _usernameListState.value = RequestState.Loading
+            try {
+                val response = loginRepository.getUsers()
+                if (response.isSuccessful) {
+                    val users = response.body().orEmpty().map { it }
+                    _usernameListState.value = RequestState.Success(users)
+                } else {
+                    _usernameListState.value = RequestState.Error(Throwable(response.message()))
+                }
+            } catch (e: Exception) {
+                _usernameListState.value = RequestState.Error(Throwable(e.cause))
+            }
+        }
+    }
+
+    private suspend fun authenticateUser(user: User) {
+        viewModelScope.launch {
+            try {
+                val response = loginRepository.authenticateUser(user)
+
+                if (response.isSuccessful) {
+                    _userLoginState.value = RequestState.Success(response.body()?.userToken)
+                    response.body()?.userToken
+                } else {
+                    _userLoginState.value = RequestState.Error(Throwable(response.message()))
+                    response.body()?.success
+                }
+            } catch (e: Error) {
+                _userLoginState.value = RequestState.Error(Throwable(e))
+            }
+        }
     }
 }

@@ -88,4 +88,5 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.org.json.serialization)
+    implementation(libs.org.android.coroutines)
 }
